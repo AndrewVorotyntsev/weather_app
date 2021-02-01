@@ -43,6 +43,7 @@ class _WeatherAppState extends State<WeatherApp>{
 
   Future getWeather () async {
     //Прогноз  на 5 дней
+    String token = "My token";
     String weatherLink = "https://api.openweathermap.org/data/2.5/weather?q=$city&units=metric&appid=$token&lang=ru";
     http.Response response = await http.get(weatherLink);
     var resultWeather = jsonDecode(response.body);
