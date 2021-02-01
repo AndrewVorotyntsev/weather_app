@@ -44,7 +44,7 @@ class _WeatherAppState extends State<WeatherApp>{
   Future getWeather () async {
     //Прогноз  на 5 дней
     // http://api.openweathermap.org/data/2.5/forecast?q=%D0%95%D0%BB%D0%B5%D1%86&appid=0fbe121b9c1630cf98a882cec8216cfd&units=metric
-    String weatherLink = "https://api.openweathermap.org/data/2.5/weather?q=$city&units=metric&appid=0fbe121b9c1630cf98a882cec8216cfd&lang=ru";
+    String weatherLink = "https://api.openweathermap.org/data/2.5/weather?q=$city&units=metric&appid=$token&lang=ru";
     http.Response response = await http.get(weatherLink);
     var resultWeather = jsonDecode(response.body);
 
