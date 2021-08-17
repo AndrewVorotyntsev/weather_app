@@ -1,213 +1,71 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:weather_app/model/weather_model.dart';
+import 'package:weather_app/widgets/SearchCity.dart';
+import 'package:weather_app/widgets/cards/WeatherTodayCard.dart';
+import 'package:weather_app/widgets/cards/WeatherNowCard.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:weather_app/bloc/weather_bloc.dart';
 
 void main() {
   runApp(WeatherApp());
 }
 
 class WeatherApp extends StatefulWidget {
-
   @override
   State<StatefulWidget> createState() {
     return _WeatherAppState();
   }
 }
 
-class _WeatherAppState extends State<WeatherApp>{
-
-  // В планах добавить отлов ошибок при отсутствии подключения к интернету и в опечатках
-
-  // Во время отдадки оставляем 1.0
-  //double opacityLevel = 1.0;
-  // При запуске приложения карточка с погодой не имеет данных, поэтому мы ее не показываем
-  double opacityLevel = 0.0;
-  var title = "Погода";
-
-  var city;
-
-  var temp;
-  var temp_min;
-  var temp_max;
-
-  var humidity;
-  var pressure;
-
-  var wind_speed;
-  var wind_deg;
-
-  var clouds;
-
-  var description;
-
-  Future getWeather () async {
-    //Прогноз  на 5 дней
-    // http://api.openweathermap.org/data/2.5/forecast?q=%D0%95%D0%BB%D0%B5%D1%86&appid=0fbe121b9c1630cf98a882cec8216cfd&units=metric
-    String weatherLink = "https://api.openweathermap.org/data/2.5/weather?q=$city&units=metric&appid=0fbe121b9c1630cf98a882cec8216cfd&lang=ru";
-    http.Response response = await http.get(weatherLink);
-    var resultWeather = jsonDecode(response.body);
-
-    setState(() {
-      temp = resultWeather["main"]["temp"];
-      temp_min = resultWeather["main"]["temp_min"];
-      temp_max = resultWeather["main"]["temp_max"];
-
-      humidity = resultWeather["main"]["humidity"];
-      pressure = resultWeather["main"]["pressure"];
-
-      wind_speed = resultWeather["wind"]["speed"];
-      wind_deg = resultWeather["wind"]["deg"];
-
-      clouds = resultWeather["clouds"]["all"];
-
-
-      description = resultWeather["weather"][0]["main"];
-
-      // Меняем заголовок и делаем карточку видимой
-      title = "Погода в городе $city";
-      opacityLevel = 1.0;
-    });
-
-  }
-
-
+class _WeatherAppState extends State<WeatherApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       // Скрывает метку debug с правого верхнего угла
       debugShowCheckedModeBanner: false,
-        title: 'Weather App',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
+      title: 'Weather App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: Scaffold(
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Color(0xffb0c4de),
+        appBar: AppBar(
+          title: Text("Погода"),
+          centerTitle: true,
         ),
-        home: Scaffold(
-          backgroundColor:Color(0xffb0c4de),
-          appBar: AppBar(
-            title: Text(title),
-            centerTitle: true,
+        body: Container(
+          margin: EdgeInsets.all(10),
+          child: BlocProvider(
+            create: (BuildContext context) =>
+                WeatherBloc(),//..add(FetchWeatherEvent("Елец")),
+            child: Column(
+              children: [
+              SearchCity(),
+
+              BlocBuilder<WeatherBloc, WeatherModel>(
+                  builder: (BuildContext context, state) {
+                if (state.currentWeather.city == null) {
+                  return Center();
+                } else {
+                  return WeatherNowCard(data: state.currentWeather);
+                }
+              }),
+
+              BlocBuilder<WeatherBloc, WeatherModel>(
+                  builder: (BuildContext context, state) {
+                    if (state.currentWeather.city == null) {
+                      return Center();
+                    } else {
+                      return WeatherTodayCard(data: state.weatherForecast);
+                    }
+                  }),
+
+              //WeatherTodayCard()
+            ]),
           ),
-          body: Container(
-              margin: EdgeInsets.all(10),
-                child: Column(
-                  //mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Row1
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 310,
-                            //height: 50,
-                            //margin: EdgeInsets.only(left: 10),
-                            child: Card(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20.0),
-                              ),
-                              child: TextFormField(
-                                style: TextStyle(fontSize: 20),
-                                onChanged: (String str){
-                                  setState(() {
-                                    city = str;
-                                  });
-                                },
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  hintText: "Введите город",
-                                  //contentPadding: EdgeInsets.only(left: 10),
-                                  icon: Icon(Icons.search_sharp),
-                                ),
-                                onSaved: (String value) {
-                                  // This optional block of code can be used to run
-                                  // code when the user saves the form.
-                                },
-                              ),
-                            ),
-                          ),
-                          Container(
-                            //padding: EdgeInsets.all(2),
-                            width: 42,
-                            height: 42,
-                            child: RawMaterialButton(
-                              onPressed: () {
-                                setState(() {
-                                  // При запросе данных старые данные скорее всего будут неактуальны
-                                  // Поэтому мы делаем видимость того, что старая карточка с погодой исчезает, а затем появляется новая
-                                  opacityLevel = 0.0;
-                                });
-                                getWeather();
-                              },
-                              //elevation: 1.0,
-                              fillColor: Colors.white,
-                              child: Icon(
-                                Icons.cloud_sharp,
-                                color: Colors.blue,
-                                size: 25.0,
-                              ),
-                              //padding: EdgeInsets.all(15.0),
-                              shape: CircleBorder(),
-                            ),
-                          )
-                        ],
-                      ),
-                    // Row1
-                    AnimatedOpacity(opacity: opacityLevel, duration : Duration(milliseconds: 100),child:
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 360,
-                          height: 180,
-                          //padding: EdgeInsets.all(10),
-                          child: Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20.0),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(5),
-                              // Row2
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  // Темпеатура
-                                  Padding(padding: EdgeInsets.only(right: 5),
-                                  // Column2
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      //Здесь предполагается вставить картинку, но на даннный момент их нельзя загружать из сети
-                                      Text("$temp°C", style: TextStyle(fontSize: 44, fontFamily: "Lato"),),
-                                      Text("$temp_min°C / $temp_max°C", style: TextStyle(fontSize: 18, fontFamily: "Lato")),
-                                    ],
-                                  ),
-                                  ),
-                                  Padding(padding: EdgeInsets.only(left: 2,right: 2),
-                                  child:
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text("Влажность: $humidity%", style: TextStyle(fontSize: 20, fontFamily: "FiraSans")),
-                                      Text("Давление: $pressure кПа", style: TextStyle(fontSize: 20, fontFamily: "FiraSans")),
-                                      Text("Ветер: $wind_speed($wind_deg°)", style: TextStyle(fontSize: 20, fontFamily: "FiraSans")),
-                                      Text("Облака: $clouds%", style: TextStyle(fontSize: 20, fontFamily: "FiraSans")),
-                                    ],
-                                  ),
-                                  ),
-                                  //Параметры
-                                  // Иконка
-                                ],
-                              ),
-                            ),
-                          ),
-                        )
-                      ],
-                    )
-                    )],
-                ),
-              ),
-          ),
+        ),
+      ),
     );
   }
-
 }
